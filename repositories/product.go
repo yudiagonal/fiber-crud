@@ -30,11 +30,25 @@ func (p *ProductRepositoryImpl) DeleteProduct(id int) bool {
 }
 
 // GetAllProduct implements interfaces.ProductRepository.
-func (p *ProductRepositoryImpl) GetAllProduct() []models.Product {
-
+// GetAllProducts mengambil daftar produk dengan pagination
+func (r *ProductRepositoryImpl) GetAllProducts(page, limit int) ([]models.Product, int64, error) {
 	var products []models.Product
-	database.DB.Find(&products)
-	return products
+	var total int64
+
+	// Hitung total data produk
+	if err := database.DB.Model(&models.Product{}).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Hitung offset berdasarkan halaman dan limit
+	offset := (page - 1) * limit
+
+	// Ambil data produk dengan pagination
+	if err := database.DB.Offset(offset).Limit(limit).Find(&products).Error; err != nil {
+		return nil, 0, err
+	}
+
+	return products, total, nil
 }
 
 // GetProductByID implements interfaces.ProductRepository.

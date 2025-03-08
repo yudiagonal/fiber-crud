@@ -3,6 +3,8 @@ package controllers
 import (
 	"fiber-crud/interfaces"
 	"fiber-crud/models"
+	"fiber-crud/utils"
+	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -16,8 +18,25 @@ func NewProductController(repo interfaces.ProductRepository) *ProductController 
 }
 
 func (c *ProductController) GetAllProducts(ctx *fiber.Ctx) error {
-	products := c.repo.GetAllProduct()
-	return ctx.JSON(products)
+	// ambil parameter pagination dari query string
+	page, _ := strconv.Atoi(ctx.Query("page", "1"))   // default 1
+	limit, _ := strconv.Atoi(ctx.Query("page", "10")) // default 10
+
+	//ambil data dari repository
+	products, total, err := c.repo.GetAllProducts(page, limit)
+	if err != nil {
+		return ctx.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"error": "failed to fetch product",
+		})
+	}
+
+	// meta data pagination
+	meta := utils.NewPaginationMeta(page, limit, total)
+	// Kembalikan respons dengan metadata pagination
+	return ctx.JSON(fiber.Map{
+		"data": products,
+		"meta": meta,
+	})
 }
 
 func (c *ProductController) GetProductByID(ctx *fiber.Ctx) error {
